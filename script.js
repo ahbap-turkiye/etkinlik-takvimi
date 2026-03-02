@@ -62,7 +62,10 @@ function showEmptyMonthMessage() {
 }
 
 // Uygulamayı başlat
-function initializeApp() {
+async function initializeApp() {
+    // Events objesini temizle
+    events = {};
+
     document.getElementById('pageTitle').textContent = `Ahbap ${config.sehir} - ${config.ay} ${config.yil} Etkinlik Takvimi`;
     document.getElementById('headerTitle').textContent = `${config.sehir} - ${config.ay} ${config.yil} Etkinlik Takvimi`;
     document.getElementById('headerSlogan').textContent = config.slogan;
@@ -95,7 +98,7 @@ function initializeApp() {
         };
     });
 
-    buildCalendar();
+    await buildCalendar();
 }
 
 // Gün ismini al
@@ -155,20 +158,22 @@ function createDayElement(gun, etkinlik, ozelGun, gunIndex, isNextMonth = false)
 }
 
 // Takvimi oluştur
-function buildCalendar() {
+async function buildCalendar() {
     const container = document.getElementById('calendarDays');
-    container.innerHTML = '';
 
     const boslukSayisi = config.ayinIlkGunu - 1;
     const toplamGun = boslukSayisi + config.ayinGunSayisi;
     const gereklisatir = Math.ceil(toplamGun / 7);
     container.style.gridTemplateRows = `repeat(${gereklisatir}, minmax(100px, 1fr))`;
 
+    let animationIndex = 0;
+    const allDays = [];
+
     // Boş günler
     for (let i = 0; i < boslukSayisi; i++) {
         const emptyDay = document.createElement('div');
         emptyDay.className = 'day empty';
-        container.appendChild(emptyDay);
+        allDays.push(emptyDay);
     }
 
     // Etkinlik ve özel günleri indexle
@@ -181,18 +186,27 @@ function buildCalendar() {
     for (let gun = 1; gun <= config.ayinGunSayisi; gun++) {
         const gunIndex = (boslukSayisi + gun - 1) % 7;
         const dayDiv = createDayElement(gun, etkinlikMap[gun], ozelGunlerMap[gun], gunIndex);
-        container.appendChild(dayDiv);
+        dayDiv.style.animationDelay = `${0.4 + (0.05 * animationIndex)}s`;
+        animationIndex++;
+        allDays.push(dayDiv);
     }
 
     // Bir sonraki ayın günleri
     const kalanBosluk = (7 - (toplamGun % 7)) % 7;
     if (kalanBosluk > 0 && kalanBosluk < 7) {
-        loadNextMonthEvents(kalanBosluk, container);
+        const nextMonthDays = await loadNextMonthEvents(kalanBosluk, animationIndex);
+        allDays.push(...nextMonthDays);
     }
+
+    // Tüm günleri bir seferde DOM'a ekle
+    container.innerHTML = '';
+    allDays.forEach(day => container.appendChild(day));
 }
 
 // Bir sonraki ayın etkinliklerini yükle
-async function loadNextMonthEvents(kalanBosluk, container) {
+async function loadNextMonthEvents(kalanBosluk, startAnimationIndex) {
+    const nextMonthDays = [];
+
     try {
         const [yil, ayKey] = getAyFromUrl().split('-');
         const currentIndex = ayBilgileri.findIndex(a => a.key === ayKey);
@@ -222,7 +236,8 @@ async function loadNextMonthEvents(kalanBosluk, container) {
                 const calendarDate = `${nextConfig.yil}${ayNumarasi}${gunStr}`;
                 const gunIsmi = getGunIsmi(i, nextConfig);
 
-                events[`next-${etkinlik.id}`] = {
+                const eventId = `next-${etkinlik.id}`;
+                events[eventId] = {
                     title: `${etkinlik.icon} ${etkinlik.baslik}`,
                     date: `${i} ${nextConfig.ay} ${nextConfig.yil} - ${gunIsmi}`,
                     calendarDate: calendarDate,
@@ -232,20 +247,23 @@ async function loadNextMonthEvents(kalanBosluk, container) {
             }
 
             const dayDiv = createDayElement(i, etkinlik, ozelGun, -1, true);
-            container.appendChild(dayDiv);
+            dayDiv.style.animationDelay = `${0.4 + (0.05 * (startAnimationIndex + i - 1))}s`;
+            nextMonthDays.push(dayDiv);
         }
     } catch (error) {
-        console.log('Bir sonraki ay yüklenemedi:', error);
         for (let i = 1; i <= kalanBosluk; i++) {
             const dayDiv = document.createElement('div');
             dayDiv.className = 'day next-month';
             const dayNumber = document.createElement('div');
             dayNumber.className = 'day-number';
             dayNumber.textContent = i;
+            dayDiv.style.animationDelay = `${0.4 + (0.05 * (startAnimationIndex + i - 1))}s`;
             dayDiv.appendChild(dayNumber);
-            container.appendChild(dayDiv);
+            nextMonthDays.push(dayDiv);
         }
     }
+
+    return nextMonthDays;
 }
 
 // Modal
