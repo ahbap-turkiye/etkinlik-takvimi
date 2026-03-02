@@ -284,29 +284,17 @@ function closeModal() {
     document.body.style.overflow = '';
 }
 
-// Takvime ekle
+// Takvime ekle - Google Calendar
 function addToCalendar() {
     const event = events[currentEventId];
-    const icsContent = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Ahbap Tekirdağ//Etkinlik Takvimi//TR
-BEGIN:VEVENT
-UID:${currentEventId}@ahbap-tekirdag
-DTSTAMP:${event.calendarDate}T120000Z
-DTSTART:${event.calendarDate}T120000Z
-DTEND:${event.calendarDate}T140000Z
-SUMMARY:${event.title}
-DESCRIPTION:${event.desc.replace(/\n/g, '\\n')}
-LOCATION:${config.konum}
-END:VEVENT
-END:VCALENDAR`;
 
-    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `Ahbap-${config.ay}-${config.yil}-Etkinlikler.ics`;
-    link.click();
-    URL.revokeObjectURL(link.href);
+    // Google Calendar URL formatı
+    const startDate = event.calendarDate;
+    const endDate = event.calendarDate;
+
+    const googleCalendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${startDate}T120000Z/${endDate}T140000Z&details=${encodeURIComponent(event.desc)}&location=${encodeURIComponent(config.konum)}`;
+
+    window.open(googleCalendarUrl, '_blank');
 }
 
 // Ay değiştir
