@@ -9,7 +9,6 @@ Ahbap Tekirdağ gönüllülerinin 2026 yılı etkinliklerini gösteren dinamik i
 - **8 Şubat** - Gönüllü Tanışma & 6 Şubat Depremini Anma: Yeni gönüllülere sunum ve AFAD eğitimi
 - **15 Şubat** - Kediler Günü: Sokak hayvanlarına yuva yapımı ve mama dağıtımı
 - **21 Şubat** - Sevgiye İlmek: İftar sonrası örgü etkinliği
-- **28 Şubat** - Quiz Night: Emojilerle şarkı tahmin ve oyun gecesi
 
 ### Mart 2026
 - **1 Mart** - Quiz Night: Kahkaha, takım ruhu ve bol eğlencenin bir araya geldiği sosyal buluşma
