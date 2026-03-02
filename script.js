@@ -269,6 +269,7 @@ function openModal(eventId) {
     currentEventId = eventId;
     const event = events[eventId];
     document.getElementById('modalTitle').textContent = event.title;
+    document.getElementById('modalDate').textContent = event.date;
     document.getElementById('modalDesc').innerHTML = event.desc.replace(/\n/g, '<br>');
     document.getElementById('modalAnimation').innerHTML = event.gif ?
         `<div class="modal-gif"><img src="${event.gif}" alt="Etkinlik animasyonu"></div>` : '';
@@ -293,6 +294,33 @@ function addToCalendar() {
 
     window.open(googleCalendarUrl, '_blank');
 }
+
+// Takvime Ekle dropdown
+function addAllToCalendar() {}
+
+function toggleCalendarDropdown(e) {
+    e.stopPropagation();
+    const dropdown = document.getElementById('calendarDropdown');
+    const isOpen = dropdown.classList.contains('open');
+
+    if (!isOpen) {
+        const ayNumarasi = String(ayBilgileri.find(a => a.isim === config.ay).ay).padStart(2, '0');
+        dropdown.innerHTML = `<div class="calendar-dropdown-header">Etkinliği seç ve ekle</div>` +
+            config.etkinlikler.map(etkinlik => {
+                const gunStr = String(etkinlik.gun).padStart(2, '0');
+                const calendarDate = `${config.yil}${ayNumarasi}${gunStr}`;
+                const title = `${etkinlik.icon} ${etkinlik.baslik}`;
+                const url = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${calendarDate}T120000Z/${calendarDate}T140000Z&details=${encodeURIComponent(etkinlik.detay)}&location=${encodeURIComponent(config.konum)}`;
+                return `<a href="${url}" target="_blank">${title}<span class="event-date">${etkinlik.gun} ${config.ay}</span></a>`;
+            }).join('');
+    }
+
+    dropdown.classList.toggle('open', !isOpen);
+}
+
+document.addEventListener('click', () => {
+    document.getElementById('calendarDropdown')?.classList.remove('open');
+});
 
 // Ay değiştir
 async function changeMonth(direction) {
