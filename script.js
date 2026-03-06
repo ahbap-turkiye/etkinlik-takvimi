@@ -2,6 +2,49 @@
 let config = null;
 let events = {};
 let currentEventId = null;
+let currentSehir = null;
+
+// Şehir konfigürasyonları - Her şehir için ayrı Google Sheet ID
+const SEHIRLER = {
+    tekirdag: {
+        isim: 'Tekirdağ',
+        sheetId: '1N_CdZ9Tt21S32AchnxsLhVtFax9z3KWBGdkUgvRuCb8',
+        slogan: 'Sevginin ve gerçeğin peşindeyiz',
+        favicon: 'images/tekirdag-favicon.png'
+    },
+    canakkale: {
+        isim: 'Çanakkale',
+        sheetId: '', // Çanakkale Sheet ID'si eklenecek
+        slogan: 'Sevginin ve gerçeğin peşindeyiz',
+        favicon: 'images/canakkale-favicon.png'
+    },
+    istanbul: {
+        isim: 'İstanbul',
+        sheetId: '1Qt91vORC3IfHbXH0jzmmuj-gU7OIj-yV0N-tDrvE634',
+        slogan: 'Sevginin ve gerçeğin peşindeyiz',
+        favicon: 'images/istanbul-favicon.png'
+    }
+    // Yeni şehir eklemek için buraya ekle
+};
+
+// Varsayılan şehir (URL'de şehir belirtilmezse)
+const DEFAULT_SEHIR = 'tekirdag';
+
+// Google Sheets URL oluşturucu
+function getSheetUrls(sheetId) {
+    return {
+        etkinlikler: `https://opensheet.elk.sh/${sheetId}/Etkinlikler`,
+        ozelGunler: `https://opensheet.elk.sh/${sheetId}/Özel Günler`
+    };
+}
+
+// URL'den şehir al
+function getSehirFromUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sehir = urlParams.get('sehir');
+    if (sehir && SEHIRLER[sehir]) return sehir;
+    return DEFAULT_SEHIR;
+}
 
 const gunIsimleri = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 const ayBilgileri = [
@@ -12,6 +55,18 @@ const ayBilgileri = [
     { key: 'eylul', isim: 'Eylül', ay: 9 }, { key: 'ekim', isim: 'Ekim', ay: 10 },
     { key: 'kasim', isim: 'Kasım', ay: 11 }, { key: 'aralik', isim: 'Aralık', ay: 12 }
 ];
+
+// Ayın ilk gününü hesapla (Pazartesi=1, Pazar=7)
+function getAyinIlkGunu(yil, ayNumarasi) {
+    const date = new Date(yil, ayNumarasi - 1, 1);
+    let gun = date.getDay(); // 0=Pazar, 1=Pazartesi...
+    return gun === 0 ? 7 : gun; // Pazar'ı 7 yap (takvimimiz Pazartesi başlıyor)
+}
+
+// Ayın gün sayısını hesapla
+function getAyinGunSayisi(yil, ayNumarasi) {
+    return new Date(yil, ayNumarasi, 0).getDate();
+}
 
 // URL'den ay al veya otomatik belirle
 function getAyFromUrl() {
@@ -24,31 +79,137 @@ function getAyFromUrl() {
     return `${bugun.getFullYear()}-${ayIsimleri[bugun.getMonth()]}`;
 }
 
-// Config yükle
+// Google Sheets'ten veri çek ve config oluştur
 async function loadConfig() {
     try {
-        const ay = getAyFromUrl();
-        const response = await fetch(`data/${ay}.json`);
-        if (!response.ok) throw new Error(`${ay}.json bulunamadı`);
-        config = await response.json();
+        // Şehir bilgisini al
+        currentSehir = getSehirFromUrl();
+        const sehirConfig = SEHIRLER[currentSehir];
+
+        // Sheet ID kontrolü
+        if (!sehirConfig.sheetId) {
+            showSehirNotConfigured(sehirConfig.isim);
+            return;
+        }
+
+        const sheetUrls = getSheetUrls(sehirConfig.sheetId);
+
+        const [yil, ayKey] = getAyFromUrl().split('-');
+        const ayInfo = ayBilgileri.find(a => a.key === ayKey);
+        const ayIsmi = ayInfo?.isim || 'Ocak';
+        const ayNumarasi = ayInfo?.ay || 1;
+
+        // Favicon güncelle
+        updateFavicon(sehirConfig.favicon);
+
+        // Etkinlikler ve özel günleri paralel çek
+        const [etkinliklerRes, ozelGunlerRes] = await Promise.all([
+            fetch(sheetUrls.etkinlikler),
+            fetch(sheetUrls.ozelGunler)
+        ]);
+
+        const tumEtkinlikler = await etkinliklerRes.json();
+        const tumOzelGunler = await ozelGunlerRes.json();
+
+        // Bu ay ve yıla ait etkinlikleri filtrele
+        const ayEtkinlikleri = tumEtkinlikler.filter(e =>
+            e.ay === ayIsmi && String(e.yil) === yil
+        );
+
+        const ayOzelGunleri = tumOzelGunler.filter(o =>
+            o.ay === ayIsmi && String(o.yil) === yil
+        );
+
+        // Eğer bu ay için etkinlik yoksa boş ay mesajı göster
+        if (ayEtkinlikleri.length === 0 && ayOzelGunleri.length === 0) {
+            showEmptyMonthMessage();
+            return;
+        }
+
+        // Şehir ismini config'den al
+        const sehir = sehirConfig.isim;
+
+        // Config objesini oluştur
+        config = {
+            sehir: sehir,
+            ay: ayIsmi,
+            yil: parseInt(yil),
+            ayinIlkGunu: getAyinIlkGunu(parseInt(yil), ayNumarasi),
+            ayinGunSayisi: getAyinGunSayisi(parseInt(yil), ayNumarasi),
+            slogan: sehirConfig.slogan,
+            footer: `Ahbap ${sehir} Gönüllüleri`,
+            konum: sehir,
+            etkinlikler: ayEtkinlikleri.map(e => ({
+                id: e.id,
+                gun: parseInt(e.gun),
+                icon: e.icon,
+                baslik: e.baslik,
+                kisa: e.kisa,
+                detay: e.detay,
+                gif: e.gif
+            })),
+            ozelGunler: ayOzelGunleri.map(o => ({
+                gun: parseInt(o.gun),
+                tur: o.tur,
+                baslik: o.baslik,
+                emoji: o.emoji,
+                renk: o.renk
+            }))
+        };
+
         initializeApp();
     } catch (error) {
-        console.error('Config yüklenemedi:', error);
+        console.error('Veri yüklenemedi:', error);
         showEmptyMonthMessage();
     }
 }
 
+// Favicon güncelle
+function updateFavicon(faviconPath) {
+    if (!faviconPath) return;
+    let link = document.querySelector("link[rel~='icon']");
+    if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.head.appendChild(link);
+    }
+    link.href = faviconPath;
+}
+
+// Şehir yapılandırılmamış mesajı
+function showSehirNotConfigured(sehirIsmi) {
+    const sehirConfig = SEHIRLER[currentSehir] || SEHIRLER[DEFAULT_SEHIR];
+
+    document.getElementById('pageTitle').textContent = `Ahbap ${sehirIsmi} - Etkinlik Takvimi`;
+    document.getElementById('headerTitle').textContent = `${sehirIsmi} Etkinlik Takvimi`;
+    document.getElementById('headerSlogan').textContent = sehirConfig.slogan;
+    document.getElementById('currentMonthDisplay').textContent = '';
+    document.getElementById('footerText').textContent = `Ahbap ${sehirIsmi} Gönüllüleri`;
+    document.getElementById('pdfBtn').style.display = 'none';
+
+    document.getElementById('calendarDays').innerHTML = `
+        <div style="grid-column: 1/-1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; text-align: center;">
+            <div style="font-size: 4rem; margin-bottom: 20px; opacity: 0.3;">🔧</div>
+            <h3 style="color: var(--text-dark); margin-bottom: 10px; font-size: 1.5rem;">${sehirIsmi} Takvimi Henüz Hazır Değil</h3>
+            <p style="color: var(--text-medium); margin-bottom: 30px; max-width: 500px;">
+                Bu şehir için Google Sheet yapılandırması henüz tamamlanmamış. Lütfen daha sonra tekrar deneyin.
+            </p>
+        </div>`;
+}
+
 // Boş ay mesajı
 function showEmptyMonthMessage() {
+    const sehirConfig = SEHIRLER[currentSehir] || SEHIRLER[DEFAULT_SEHIR];
+    const sehirIsmi = sehirConfig.isim;
     const [yil, ayKey] = getAyFromUrl().split('-');
     const ayIsmi = ayBilgileri.find(a => a.key === ayKey)?.isim || 'Bu ay';
 
-    document.getElementById('pageTitle').textContent = `Ahbap Tekirdağ - ${ayIsmi} ${yil} Etkinlik Takvimi`;
-    document.getElementById('headerTitle').textContent = `Tekirdağ - ${ayIsmi} ${yil} Etkinlik Takvimi`;
-    document.getElementById('headerSlogan').textContent = 'Sevginin ve gerçeğin peşindeyiz';
+    document.getElementById('pageTitle').textContent = `Ahbap ${sehirIsmi} - ${ayIsmi} ${yil} Etkinlik Takvimi`;
+    document.getElementById('headerTitle').textContent = `${sehirIsmi} - ${ayIsmi} ${yil} Etkinlik Takvimi`;
+    document.getElementById('headerSlogan').textContent = sehirConfig.slogan;
     document.getElementById('currentMonthDisplay').textContent = `${ayIsmi} ${yil}`;
-    document.getElementById('footerText').textContent = 'Ahbap Tekirdağ Gönüllüleri';
-    document.getElementById('pdfLink').style.display = 'none';
+    document.getElementById('footerText').textContent = `Ahbap ${sehirIsmi} Gönüllüleri`;
+    document.getElementById('pdfBtn').style.display = 'none';
 
     document.getElementById('calendarDays').innerHTML = `
         <div style="grid-column: 1/-1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; text-align: center;">
@@ -71,14 +232,7 @@ async function initializeApp() {
     document.getElementById('currentMonthDisplay').textContent = `${config.ay} ${config.yil}`;
     document.getElementById('footerText').textContent = config.footer;
 
-    const pdfLink = document.getElementById('pdfLink');
-    if (config.pdfDosyasi) {
-        pdfLink.href = config.pdfDosyasi;
-        pdfLink.download = `Ahbap-${config.ay}-${config.yil}-Takvim.pdf`;
-        pdfLink.style.display = 'flex';
-    } else {
-        pdfLink.style.display = 'none';
-    }
+    // PDF butonu artık her zaman görünür (dinamik oluşturuluyor)
 
     // Events objesini oluştur
     config.etkinlikler.forEach(etkinlik => {
@@ -213,10 +367,52 @@ async function loadNextMonthEvents(kalanBosluk, startAnimationIndex) {
 
         if (newIndex > 11) { newIndex = 0; newYil++; }
 
-        const nextAyFile = `${newYil}-${ayBilgileri[newIndex].key}`;
-        const response = await fetch(`data/${nextAyFile}.json`);
-        if (!response.ok) throw new Error(`${nextAyFile}.json bulunamadı`);
-        const nextConfig = await response.json();
+        const nextAyIsmi = ayBilgileri[newIndex].isim;
+        const nextAyNumarasi = ayBilgileri[newIndex].ay;
+
+        // Google Sheets'ten verileri çek (cache'den gelecek muhtemelen)
+        const sehirConfig = SEHIRLER[currentSehir];
+        const sheetUrls = getSheetUrls(sehirConfig.sheetId);
+
+        const [etkinliklerRes, ozelGunlerRes] = await Promise.all([
+            fetch(sheetUrls.etkinlikler),
+            fetch(sheetUrls.ozelGunler)
+        ]);
+
+        const tumEtkinlikler = await etkinliklerRes.json();
+        const tumOzelGunler = await ozelGunlerRes.json();
+
+        // Sonraki aya ait verileri filtrele
+        const nextEtkinlikler = tumEtkinlikler.filter(e =>
+            e.ay === nextAyIsmi && String(e.yil) === String(newYil)
+        );
+        const nextOzelGunler = tumOzelGunler.filter(o =>
+            o.ay === nextAyIsmi && String(o.yil) === String(newYil)
+        );
+
+        // Config objesi oluştur
+        const nextConfig = {
+            ay: nextAyIsmi,
+            yil: newYil,
+            ayinIlkGunu: getAyinIlkGunu(newYil, nextAyNumarasi),
+            ayinGunSayisi: getAyinGunSayisi(newYil, nextAyNumarasi),
+            etkinlikler: nextEtkinlikler.map(e => ({
+                id: e.id,
+                gun: parseInt(e.gun),
+                icon: e.icon,
+                baslik: e.baslik,
+                kisa: e.kisa,
+                detay: e.detay,
+                gif: e.gif
+            })),
+            ozelGunler: nextOzelGunler.map(o => ({
+                gun: parseInt(o.gun),
+                tur: o.tur,
+                baslik: o.baslik,
+                emoji: o.emoji,
+                renk: o.renk
+            }))
+        };
 
         const nextEtkinlikMap = {};
         const nextOzelGunlerMap = {};
@@ -348,3 +544,8 @@ window.addEventListener('resize', () => {
 });
 
 document.addEventListener('DOMContentLoaded', loadConfig);
+
+// PDF Oluştur (Print dialog)
+function generatePDF() {
+    window.print();
+}
