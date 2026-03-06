@@ -18,10 +18,10 @@ Ahbap gönüllülerinin etkinliklerini gösteren dinamik interaktif web takvimi.
 ### Canlı Site
 
 ```
-https://ahbap.github.io/etkinlik-takvimi/                    # Varsayılan şehir (Tekirdağ)
-https://ahbap.github.io/etkinlik-takvimi/?sehir=tekirdag    # Tekirdağ
-https://ahbap.github.io/etkinlik-takvimi/?sehir=canakkale   # Çanakkale
-https://ahbap.github.io/etkinlik-takvimi/?sehir=istanbul    # İstanbul
+https://ahbap-turkiye.github.io/etkinlik-takvimi/                    # Varsayılan şehir (Tekirdağ)
+https://ahbap-turkiye.github.io/etkinlik-takvimi/?sehir=tekirdag    # Tekirdağ
+https://ahbap-turkiye.github.io/etkinlik-takvimi/?sehir=canakkale   # Çanakkale
+https://ahbap-turkiye.github.io/etkinlik-takvimi/?sehir=istanbul    # İstanbul
 ```
 
 ### Ay Seçimi
@@ -29,6 +29,7 @@ https://ahbap.github.io/etkinlik-takvimi/?sehir=istanbul    # İstanbul
 ```
 ?sehir=tekirdag&ay=2026-mart     # Tekirdağ - Mart 2026
 ?sehir=canakkale&ay=2026-nisan   # Çanakkale - Nisan 2026
+?sehir=istanbul&ay=2026-mart     # İstanbul - Mart 2026
 ```
 
 ## Yeni Şehir Ekleme
