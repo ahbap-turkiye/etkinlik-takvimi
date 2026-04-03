@@ -9,23 +9,23 @@ const SEHIRLER = {
     tekirdag: {
         isim: 'Tekirdağ',
         sheetId: '1N_CdZ9Tt21S32AchnxsLhVtFax9z3KWBGdkUgvRuCb8',
-        slogan: 'Sevginin ve gerçeğin peşindeyiz',
-        favicon: 'images/tekirdag-favicon.png'
+        slogan: 'Sevginin ve gerçeğin peşindeyiz'
     },
     canakkale: {
         isim: 'Çanakkale',
         sheetId: '', // Çanakkale Sheet ID'si eklenecek
-        slogan: 'Sevginin ve gerçeğin peşindeyiz',
-        favicon: 'images/canakkale-favicon.png'
+        slogan: 'Sevginin ve gerçeğin peşindeyiz'
     },
     istanbul: {
         isim: 'İstanbul',
         sheetId: '1Qt91vORC3IfHbXH0jzmmuj-gU7OIj-yV0N-tDrvE634',
-        slogan: 'Sevginin ve gerçeğin peşindeyiz',
-        favicon: 'images/istanbul-favicon.png'
+        slogan: 'Sevginin ve gerçeğin peşindeyiz'
     }
     // Yeni şehir eklemek için buraya ekle
 };
+
+// Tüm şehirler için ortak favicon
+const COMMON_FAVICON = 'ahbap.png';
 
 // Varsayılan şehir (URL'de şehir belirtilmezse)
 const DEFAULT_SEHIR = 'tekirdag';
@@ -99,8 +99,8 @@ async function loadConfig() {
         const ayIsmi = ayInfo?.isim || 'Ocak';
         const ayNumarasi = ayInfo?.ay || 1;
 
-        // Favicon güncelle
-        updateFavicon(sehirConfig.favicon);
+        // Favicon güncelle (ortak favicon kullan)
+        updateFavicon(COMMON_FAVICON);
 
         // Etkinlikler ve özel günleri paralel çek
         const [etkinliklerRes, ozelGunlerRes] = await Promise.all([
