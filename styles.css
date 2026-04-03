@@ -154,15 +154,18 @@ body {
 .event-title {
     font-weight: 600;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 4px;
     margin-bottom: 2px;
-    word-break: break-word;
-    overflow-wrap: break-word;
+    word-break: normal;
+    overflow-wrap: normal;
+    white-space: normal;
 }
 .event-icon {
     font-size: 0.75rem;
     flex-shrink: 0;
+    margin-top: 1px;
+    line-height: 1;
 }
 .event-desc {
     opacity: 0.9;
@@ -235,8 +238,18 @@ body {
     .events-container.multiple-events { gap: 2px; }
     .event { padding: 4px 5px; }
     .events-container.multiple-events .event { padding: 3px 4px; }
-    .event-title { font-size: 0.5rem; }
-    .event-icon { font-size: 0.6rem; }
+    .event-title {
+        font-size: 0.55rem;
+        gap: 2px;
+        line-height: 1.4;
+        white-space: normal;
+        word-spacing: -0.05em;
+        letter-spacing: -0.02em;
+    }
+    .event-icon {
+        font-size: 0.65rem;
+        margin-top: 0;
+    }
     .event-desc { display: none; }
     .floating-heart { opacity: 0.12; }
 }
