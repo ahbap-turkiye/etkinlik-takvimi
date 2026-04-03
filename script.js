@@ -260,6 +260,23 @@ function getGunIsmi(gun, ayConfig = config) {
     return gunIsimleri[gunIndex];
 }
 
+// Markdown formatını HTML'e çevir
+function formatMarkdown(text) {
+    if (!text) return text;
+    // Sıralama önemli: önce çift karakterli formatlar
+    // **bold** -> <strong>bold</strong>
+    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    // __underline__ -> <u>underline</u>
+    text = text.replace(/__(.+?)__/g, '<u>$1</u>');
+    // [text](url) -> <a href="url" target="_blank">text</a>
+    text = text.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    // *italic* -> <em>italic</em>
+    text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    // _italic_ -> <em>italic</em> (tek alt çizgi)
+    text = text.replace(/(?<!_)_([^_]+?)_(?!_)/g, '<em>$1</em>');
+    return text;
+}
+
 // Özel gün badge metni
 function getOzelGunText(ozelGun) {
     const screenWidth = window.innerWidth;
@@ -269,13 +286,13 @@ function getOzelGunText(ozelGun) {
 }
 
 // Gün kutusu oluştur
-function createDayElement(gun, etkinlik, ozelGun, gunIndex, isNextMonth = false) {
+function createDayElement(gun, etkinlikler, ozelGun, gunIndex, isNextMonth = false) {
     const dayDiv = document.createElement('div');
     let dayClass = 'day';
     if (isNextMonth) dayClass += ' next-month';
     if (gunIndex === 5) dayClass += ' saturday';
     if (gunIndex === 6) dayClass += ' sunday';
-    if (etkinlik) dayClass += ' has-event';
+    if (etkinlikler && etkinlikler.length > 0) dayClass += ' has-event';
     if (ozelGun) dayClass += ' ozel-gun';
     dayDiv.className = dayClass;
 
@@ -296,14 +313,35 @@ function createDayElement(gun, etkinlik, ozelGun, gunIndex, isNextMonth = false)
         dayDiv.appendChild(ozelGunDiv);
     }
 
-    if (etkinlik) {
-        const eventDiv = document.createElement('div');
-        eventDiv.className = 'event';
-        eventDiv.onclick = () => openModal(isNextMonth ? `next-${etkinlik.id}` : etkinlik.id);
-        eventDiv.innerHTML = `
-            <div class="event-title"><span class="event-icon">${etkinlik.icon}</span> ${etkinlik.baslik}</div>
-            <div class="event-desc">${etkinlik.kisa}</div>`;
-        dayDiv.appendChild(eventDiv);
+    // Birden fazla etkinlik olabilir
+    if (etkinlikler && etkinlikler.length > 0) {
+        const eventsContainer = document.createElement('div');
+        eventsContainer.className = 'events-container';
+
+        // Birden fazla etkinlik varsa çoklu modu etkinleştir
+        const cokluEtkinlik = etkinlikler.length > 1;
+        if (cokluEtkinlik) {
+            eventsContainer.classList.add('multiple-events');
+        }
+
+        etkinlikler.forEach(etkinlik => {
+            const eventDiv = document.createElement('div');
+            eventDiv.className = 'event';
+            eventDiv.onclick = () => openModal(isNextMonth ? `next-${etkinlik.id}` : etkinlik.id);
+
+            // Çoklu etkinlik varsa kısa açıklamayı gösterme
+            if (cokluEtkinlik) {
+                eventDiv.innerHTML = `
+                    <div class="event-title"><span class="event-icon">${etkinlik.icon}</span> ${formatMarkdown(etkinlik.baslik)}</div>`;
+            } else {
+                eventDiv.innerHTML = `
+                    <div class="event-title"><span class="event-icon">${etkinlik.icon}</span> ${formatMarkdown(etkinlik.baslik)}</div>
+                    <div class="event-desc">${formatMarkdown(etkinlik.kisa)}</div>`;
+            }
+            eventsContainer.appendChild(eventDiv);
+        });
+
+        dayDiv.appendChild(eventsContainer);
     }
 
     return dayDiv;
@@ -331,7 +369,11 @@ async function buildCalendar() {
     // Etkinlik ve özel günleri indexle
     const etkinlikMap = {};
     const ozelGunlerMap = {};
-    config.etkinlikler.forEach(e => etkinlikMap[e.gun] = e);
+    // Aynı güne birden fazla etkinlik olabilir, array kullan
+    config.etkinlikler.forEach(e => {
+        if (!etkinlikMap[e.gun]) etkinlikMap[e.gun] = [];
+        etkinlikMap[e.gun].push(e);
+    });
     config.ozelGunler?.forEach(o => ozelGunlerMap[o.gun] = o);
 
     // Ayın günleri
@@ -416,31 +458,37 @@ async function loadNextMonthEvents(kalanBosluk, startAnimationIndex) {
 
         const nextEtkinlikMap = {};
         const nextOzelGunlerMap = {};
-        nextConfig.etkinlikler.forEach(e => nextEtkinlikMap[e.gun] = e);
+        // Aynı güne birden fazla etkinlik olabilir
+        nextConfig.etkinlikler.forEach(e => {
+            if (!nextEtkinlikMap[e.gun]) nextEtkinlikMap[e.gun] = [];
+            nextEtkinlikMap[e.gun].push(e);
+        });
         nextConfig.ozelGunler?.forEach(o => nextOzelGunlerMap[o.gun] = o);
 
         for (let i = 1; i <= kalanBosluk; i++) {
-            const etkinlik = nextEtkinlikMap[i];
+            const etkinlikler = nextEtkinlikMap[i];
             const ozelGun = nextOzelGunlerMap[i];
 
-            // Etkinlik varsa events objesine ekle
-            if (etkinlik) {
-                const ayNumarasi = String(ayBilgileri.find(a => a.isim === nextConfig.ay).ay).padStart(2, '0');
-                const gunStr = String(i).padStart(2, '0');
-                const calendarDate = `${nextConfig.yil}${ayNumarasi}${gunStr}`;
-                const gunIsmi = getGunIsmi(i, nextConfig);
+            // Etkinlikler varsa events objesine ekle
+            if (etkinlikler && etkinlikler.length > 0) {
+                etkinlikler.forEach(etkinlik => {
+                    const ayNumarasi = String(ayBilgileri.find(a => a.isim === nextConfig.ay).ay).padStart(2, '0');
+                    const gunStr = String(i).padStart(2, '0');
+                    const calendarDate = `${nextConfig.yil}${ayNumarasi}${gunStr}`;
+                    const gunIsmi = getGunIsmi(i, nextConfig);
 
-                const eventId = `next-${etkinlik.id}`;
-                events[eventId] = {
-                    title: `${etkinlik.icon} ${etkinlik.baslik}`,
-                    date: `${i} ${nextConfig.ay} ${nextConfig.yil} - ${gunIsmi}`,
-                    calendarDate: calendarDate,
-                    desc: etkinlik.detay,
-                    gif: etkinlik.gif
-                };
+                    const eventId = `next-${etkinlik.id}`;
+                    events[eventId] = {
+                        title: `${etkinlik.icon} ${etkinlik.baslik}`,
+                        date: `${i} ${nextConfig.ay} ${nextConfig.yil} - ${gunIsmi}`,
+                        calendarDate: calendarDate,
+                        desc: etkinlik.detay,
+                        gif: etkinlik.gif
+                    };
+                });
             }
 
-            const dayDiv = createDayElement(i, etkinlik, ozelGun, -1, true);
+            const dayDiv = createDayElement(i, etkinlikler, ozelGun, -1, true);
             dayDiv.style.animationDelay = `${0.4 + (0.05 * (startAnimationIndex + i - 1))}s`;
             nextMonthDays.push(dayDiv);
         }
@@ -464,9 +512,14 @@ async function loadNextMonthEvents(kalanBosluk, startAnimationIndex) {
 function openModal(eventId) {
     currentEventId = eventId;
     const event = events[eventId];
-    document.getElementById('modalTitle').textContent = event.title;
+    document.getElementById('modalTitle').innerHTML = event.title;
     document.getElementById('modalDate').textContent = event.date;
-    document.getElementById('modalDesc').innerHTML = event.desc.replace(/\n/g, '<br>');
+    // Satır atlamaları işle: \n (gerçek), \\n (literal), || (özel ayraç)
+    let desc = event.desc
+        .replace(/\\n/g, '<br>')  // \\n -> <br>
+        .replace(/\n/g, '<br>')   // \n -> <br>
+        .replace(/\|\|/g, '<br>'); // || -> <br>
+    document.getElementById('modalDesc').innerHTML = formatMarkdown(desc);
     document.getElementById('modalAnimation').innerHTML = event.gif ?
         `<div class="modal-gif"><img src="${event.gif}" alt="Etkinlik animasyonu"></div>` : '';
     document.getElementById('modalOverlay').classList.add('active');

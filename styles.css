@@ -119,11 +119,80 @@ body {
 .day.saturday .day-number { color: var(--ahbap-green-dark); }
 
 /* Events */
-.event { flex: 1; background: linear-gradient(135deg, var(--ahbap-green) 0%, var(--ahbap-green-dark) 100%); color: white; padding: 6px 8px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; transition: all 0.2s ease; -webkit-tap-highlight-color: rgba(139, 197, 63, 0.3); touch-action: manipulation; user-select: none; }
+.events-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow: visible;
+    min-height: 0;
+}
+
+.event {
+    background: linear-gradient(135deg, var(--ahbap-green) 0%, var(--ahbap-green-dark) 100%);
+    color: white;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: rgba(139, 197, 63, 0.3);
+    touch-action: manipulation;
+    user-select: none;
+    min-width: 0;
+    flex-shrink: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Çoklu etkinlik modunda daha kompakt görünüm */
+.events-container.multiple-events .event {
+    padding: 4px 6px;
+}
+
 .event:hover, .event:active { transform: scale(1.02); box-shadow: 0 4px 12px rgba(139, 197, 63, 0.4); }
-.event-title { font-weight: 600; display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
-.event-icon { font-size: 0.75rem; }
-.event-desc { opacity: 0.9; font-size: 0.55rem; line-height: 1.4; }
+.event-title {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 2px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+.event-icon {
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+.event-desc {
+    opacity: 0.9;
+    font-size: 0.55rem;
+    line-height: 1.4;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Markdown formatları */
+.event a, .modal-content a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    transition: opacity 0.2s ease;
+}
+
+.event a:hover {
+    opacity: 0.8;
+    text-decoration-style: solid;
+}
+
+.modal-content a {
+    color: var(--ahbap-green-dark);
+    font-weight: 600;
+}
+
+.modal-content a:hover {
+    color: var(--ahbap-green);
+}
 
 /* Footer */
 .footer { text-align: center; padding: 10px 0; color: var(--text-medium); font-size: 0.75rem; }
@@ -140,7 +209,7 @@ body {
 .modal-content p { color: var(--text-medium); font-size: 0.9rem; line-height: 1.7; }
 .modal-animation { text-align: center; margin-top: 16px; font-size: 4rem; animation: bounce 1s ease infinite; }
 .modal-gif { text-align: center; margin-top: 16px; }
-.modal-gif img { max-width: 150px; height: auto; border-radius: 10px; }
+.modal-gif img {width: auto; max-height: 150px; border-radius: 10px; }
 .calendar-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 16px; padding: 12px 20px; background: var(--ahbap-green); color: white; border: none; border-radius: 25px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; font-family: inherit; }
 .calendar-btn:hover { background: var(--ahbap-green-dark); transform: scale(1.02); }
 .calendar-btn svg { width: 20px; height: 20px; }
@@ -162,7 +231,10 @@ body {
     .day { padding: 4px; }
     .day-number { font-size: 0.7rem; width: 20px; height: 20px; }
     .ozel-gun-badge { font-size: 0.38rem; top: 3px; right: 2px; max-width: 85%; }
+    .events-container { gap: 3px; }
+    .events-container.multiple-events { gap: 2px; }
     .event { padding: 4px 5px; }
+    .events-container.multiple-events .event { padding: 3px 4px; }
     .event-title { font-size: 0.5rem; }
     .event-icon { font-size: 0.6rem; }
     .event-desc { display: none; }
@@ -206,6 +278,7 @@ body {
     .day.sunday .day-number { color: #e74c3c !important; }
     .day.sunday.has-event .day-number, .day.saturday.has-event .day-number { background: #8BC53F !important; color: white !important; }
     .day.saturday .day-number { color: #6ba32d !important; }
+    .events-container { gap: 4px !important; }
     .event { background: linear-gradient(135deg, #8BC53F 0%, #6ba32d 100%) !important; color: white !important; padding: 6px 8px !important; border-radius: 6px !important; }
     .event-title { font-size: 0.65rem !important; font-weight: 600 !important; }
     .event-icon { font-size: 0.75rem !important; }
