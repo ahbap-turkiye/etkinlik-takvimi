@@ -2,17 +2,6 @@
 
 Ahbap gönüllülerinin etkinliklerini gösteren dinamik interaktif web takvimi. Google Sheets tabanlı, çoklu şehir desteği.
 
-## Özellikler
-
-- **Çoklu Şehir Desteği**: Her şehir kendi Google Sheet'ini yönetir
-- **Google Sheets Entegrasyonu**: Kod yazmadan etkinlik ekleme/güncelleme
-- **Dinamik Ay Sistemi**: URL parametresi ile farklı ayları görüntüleme
-- **Responsive Tasarım**: Mobil, tablet, masaüstü uyumlu
-- **Animasyonlu Arka Plan**: Kalp animasyonları
-- **Etkinlik Detayları**: Modal pencere ile detaylı bilgi
-- **Takvim Entegrasyonu**: Google Calendar desteği
-- **Otomatik Tarih Hesaplama**: Ayın ilk günü ve gün sayısı otomatik
-
 ## Kullanım
 
 ### Canlı Site
@@ -86,8 +75,6 @@ Google Sheets'te direkt düzenleme yapabilirsiniz:
 1. İlgili şehrin Google Sheet'ini açın
 2. **Etkinlikler** sayfasına yeni satır ekleyin
 3. Değişiklik otomatik olarak siteye yansır (cache süresi: ~15 dk)
-
-**Tarih Hesaplama:** `ayinIlkGunu` ve `ayinGunSayisi` otomatik hesaplanır, tabloya eklemenize gerek yok.
 
 ## Teknolojiler
 
